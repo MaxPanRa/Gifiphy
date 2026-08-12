@@ -22,6 +22,13 @@
 
 ---
 
+<p align="center">
+  <img src="docs/screenshot-en.jpg" alt="Gifiphy UI in English" width="49%">
+  <img src="docs/screenshot-es.jpg" alt="Interfaz de Gifiphy en español" width="49%">
+</p>
+
+---
+
 Video to animated GIF converter with a hard **20 MB** cap, GPU-accelerated
 decoding, and a solver that steps quality down on purpose when the result
 doesn't fit.
