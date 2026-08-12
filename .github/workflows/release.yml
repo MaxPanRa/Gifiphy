@@ -1,0 +1,75 @@
+name: Release
+
+# Se dispara al empujar un tag "v*" (ej. v0.1.0). Compila en Windows,
+# arma el ejecutable portable en la raiz del repo (via scripts/collect-exe.mjs)
+# y publica tanto ese zip portable como los instaladores MSI/NSIS que genera
+# Tauri, adjuntos al Release que crea el propio tag.
+on:
+  push:
+    tags:
+      - "v*"
+  # Permite lanzarlo a mano desde la pestaña Actions para probar el pipeline
+  # sin necesidad de cortar un tag.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build app + installers
+        run: npm run app:build
+
+      - name: Package portable zip
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force portable | Out-Null
+          Copy-Item Gifiphy.exe portable/
+          Copy-Item gifsicle.exe portable/
+          Copy-Item README.md portable/
+          Copy-Item SECURITY-ANALYSIS.md portable/
+          Compress-Archive -Path portable/* -DestinationPath Gifiphy-portable.zip -Force
+
+      - name: Locate installers
+        id: installers
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem -Recurse "src-tauri/target/release/bundle/msi" -Filter *.msi | Select-Object -First 1
+          $nsis = Get-ChildItem -Recurse "src-tauri/target/release/bundle/nsis" -Filter *.exe | Select-Object -First 1
+          Copy-Item $msi.FullName "Gifiphy-setup.msi"
+          Copy-Item $nsis.FullName "Gifiphy-setup.exe"
+
+      - name: Checksums
+        shell: pwsh
+        run: |
+          Get-FileHash Gifiphy-portable.zip, Gifiphy-setup.msi, Gifiphy-setup.exe -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash)  $(Split-Path $_.Path -Leaf)" } |
+            Out-File -Encoding utf8 SHA256SUMS.txt
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            Gifiphy-portable.zip
+            Gifiphy-setup.msi
+            Gifiphy-setup.exe
+            SHA256SUMS.txt
+          generate_release_notes: true

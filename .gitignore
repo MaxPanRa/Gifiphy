@@ -1,0 +1,16 @@
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+*.local
+.DS_Store
+
+# El sidecar vendorizado se versiona a proposito: fija la version de gifsicle
+# y evita que el build dependa de que este instalado en la maquina.
+!src-tauri/bin/
+
+# Salida de `npm run app:build` / scripts/collect-exe.mjs. Se genera local o
+# vía CI, nunca a mano, así que no se versiona: son ~15 MB binarios que
+# quedarían obsoletos en el próximo commit.
+/Gifiphy.exe
+/gifsicle.exe
